@@ -22,10 +22,10 @@ type Ordered interface {
 // A Node holds an Ordered element of the AVL tree in
 // the Val field.
 type Node struct {
-	Val     Ordered
-	c       [2]*Node
-	p       *Node
-	balance int8
+	Val Ordered
+	c   [2]*Node
+	p   *Node
+	b   int8
 }
 
 // Insert inserts the element Val into the tree. Val's Less
@@ -70,14 +70,14 @@ func cmp(a, b Ordered) int8 {
 }
 
 func insertfix(c int8, s *Node) (*Node, bool) {
-	if s.balance == 0 {
-		s.balance = c
+	if s.b == 0 {
+		s.b = c
 		return s, true
 	}
 
-	if s.balance == -c {
-		s.balance = 0
-	} else if s.c[(c+1)/2].balance == c {
+	if s.b == -c {
+		s.b = 0
+	} else if s.c[(c+1)/2].b == c {
 		s = singlerot(c, s)
 	} else {
 		s = doublerot(c, s)
@@ -87,9 +87,9 @@ func insertfix(c int8, s *Node) (*Node, bool) {
 
 func singlerot(c int8, s *Node) *Node {
 	dbgLog.Printf("singlerot: enter %p:%v %d\n", s, s, c)
-	s.balance = 0
+	s.b = 0
 	s = rotate(c, s)
-	s.balance = 0
+	s.b = 0
 	dbgLog.Printf("singlerot: exit %p:%v\n", s, s)
 	return s
 }
@@ -106,17 +106,17 @@ func doublerot(c int8, s *Node) *Node {
 
 	switch {
 	default:
-		s.balance = 0
-		r.balance = 0
-	case p.balance == c:
-		s.balance = -c
-		r.balance = 0
-	case p.balance == -c:
-		s.balance = 0
-		r.balance = c
+		s.b = 0
+		r.b = 0
+	case p.b == c:
+		s.b = -c
+		r.b = 0
+	case p.b == -c:
+		s.b = 0
+		r.b = c
 	}
 
-	p.balance = 0
+	p.b = 0
 	dbgLog.Printf("doublerot: exit %p:%v\n", s, s)
 	return p
 }

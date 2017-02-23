@@ -51,8 +51,8 @@ func newIntTree(n int) *Tree {
 func checkBalance(n *Node) bool {
 	left := depth(n.c[0])
 	right := depth(n.c[1])
-	balance := right - left
-	if int8(balance) != n.balance {
+	b := right - left
+	if int8(b) != n.b {
 		return false
 	}
 	return true
