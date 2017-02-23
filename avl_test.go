@@ -30,12 +30,10 @@ func TestInsertOrdered(t *testing.T) {
 
 func TestInsertBalanced(t *testing.T) {
 	tree := newIntTree(nodes)
-	n := tree.Min()
-	for n != nil {
+	for n := tree.Min(); n != nil; n = n.Next() {
 		if !checkBalance(n) {
 			t.Errorf("Tree not balanced")
 		}
-		n = n.Next()
 	}
 }
 
