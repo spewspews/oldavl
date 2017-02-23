@@ -101,7 +101,7 @@ func doublerot(c int8, s *Node) *Node {
 	s.c[a] = rotate(-c, s.c[a])
 	p := rotate(c, s)
 	if r.p != p || s.p != p {
-		panic("doublerot: bad ps")
+		panic("doublerot: bad parents")
 	}
 
 	switch {
