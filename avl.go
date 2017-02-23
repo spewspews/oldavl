@@ -1,9 +1,16 @@
 // Package avl implements an AVL balanced binary tree.
 package avl
 
+import (
+	"io/ioutil"
+	"log"
+)
+
+var dbgLog = log.New(ioutil.Discard, "avl: ", log.LstdFlags)
+
 // Tree holds elements of the AVL tree.
 type Tree struct {
-	root *node
+	root *Node
 }
 
 // Ordered defines the comparison used to store
@@ -12,36 +19,40 @@ type Ordered interface {
 	Less(interface{}) bool
 }
 
-type node struct {
-	val     Ordered
-	child   [2]*node
-	parent  *node
+// A Node holds an Ordered element of the AVL tree in
+// the Val field.
+type Node struct {
+	Val     Ordered
+	c       [2]*Node
+	p       *Node
 	balance int8
 }
 
-// Insert inserts the element val into the tree. val's Less
+// Insert inserts the element Val into the tree. Val's Less
 // implementation must be able to handle comparisons to
 // elements stored in this tree.
-func (tree *Tree) Insert(val Ordered) {
-	new := &node{val: val}
-	tree.root, _ = insert(nil, tree.root, new)
+func (t *Tree) Insert(Val Ordered) {
+	new := &Node{Val: Val}
+	t.root, _ = insert(nil, t.root, new)
 }
 
-func insert(p, q, new *node) (*node, bool) {
+func insert(p, q, new *Node) (*Node, bool) {
 	if q == nil {
-		new.parent = p
+		new.p = p
+		dbgLog.Printf("insert: Inserting %p:%v\n", new, new)
 		return new, true
 	}
 
-	c := cmp(new.val, q.val)
+	c := cmp(new.Val, q.Val)
 	if c == 0 {
-		return new, true
+		dbgLog.Printf("insert: collision: %p:%v %p:%v\n", q, q, new, new)
+		q.Val = new.Val
+		return q, false
 	}
 
 	a := (c + 1) / 2
-	child, fix := insert(q, q.child[a], new)
-	q.child[a] = child
-
+	ch, fix := insert(q, q.c[a], new)
+	q.c[a] = ch
 	if fix {
 		return insertfix(c, q)
 	}
@@ -58,16 +69,15 @@ func cmp(a, b Ordered) int8 {
 	return 0
 }
 
-func insertfix(c int8, s *node) (*node, bool) {
+func insertfix(c int8, s *Node) (*Node, bool) {
 	if s.balance == 0 {
 		s.balance = c
 		return s, true
 	}
+
 	if s.balance == -c {
 		s.balance = 0
-		return s, false
-	}
-	if s.child[(c+1)/2].balance == c {
+	} else if s.c[(c+1)/2].balance == c {
 		s = singlerot(c, s)
 	} else {
 		s = doublerot(c, s)
@@ -75,20 +85,23 @@ func insertfix(c int8, s *node) (*node, bool) {
 	return s, false
 }
 
-func singlerot(c int8, s *node) *node {
+func singlerot(c int8, s *Node) *Node {
+	dbgLog.Printf("singlerot: enter %p:%v %d\n", s, s, c)
 	s.balance = 0
 	s = rotate(c, s)
 	s.balance = 0
+	dbgLog.Printf("singlerot: exit %p:%v\n", s, s)
 	return s
 }
 
-func doublerot(c int8, s *node) *node {
+func doublerot(c int8, s *Node) *Node {
+	dbgLog.Printf("doublerot: enter %p:%v %d\n", s, s, c)
 	a := (c + 1) / 2
-	r := s.child[a]
-	s.child[a] = rotate(-c, s.child[a])
+	r := s.c[a]
+	s.c[a] = rotate(-c, s.c[a])
 	p := rotate(c, s)
-	if r.parent != p || s.parent != p {
-		panic("doublerot: bad parents")
+	if r.p != p || s.p != p {
+		panic("doublerot: bad ps")
 	}
 
 	switch {
@@ -104,19 +117,78 @@ func doublerot(c int8, s *node) *node {
 	}
 
 	p.balance = 0
+	dbgLog.Printf("doublerot: exit %p:%v\n", s, s)
 	return p
-
 }
 
-func rotate(c int8, s *node) *node {
+func rotate(c int8, s *Node) *Node {
+	dbgLog.Printf("rotate: enter %p:%v %d\n", s, s, c)
 	a := (c + 1) / 2
-	r := s.child[a]
-	s.child[a] = r.child[a^1]
-	if s.child[a] != nil {
-		s.child[a].parent = s
+	r := s.c[a]
+	s.c[a] = r.c[a^1]
+	if s.c[a] != nil {
+		s.c[a].p = s
 	}
-	r.child[a^1] = s
-	r.parent = s.parent
-	s.parent = r
+	r.c[a^1] = s
+	r.p = s.p
+	s.p = r
+	dbgLog.Printf("rotate: exit %p:%v\n", r, r)
 	return r
+}
+
+// Min returns the minimum element of the AVL tree
+// or nil if the tree is empty.
+func (t *Tree) Min() *Node {
+	return t.bottom(0)
+}
+
+// Max returns the maximum element of the AVL tree
+// or nil if the tree is empty.
+func (t *Tree) Max() *Node {
+	return t.bottom(1)
+}
+
+func (t *Tree) bottom(d int) *Node {
+	n := t.root
+	if n == nil {
+		return nil
+	}
+
+	for c := n.c[d]; c != nil; c = n.c[d] {
+		n = c
+	}
+	return n
+}
+
+// Prev returns the previous element in an inorder
+// walk of the AVL tree.
+func (n *Node) Prev() *Node {
+	return n.walk1(0)
+}
+
+// Next returns the next element in an inorder
+// walk of the AVL tree.
+func (n *Node) Next() *Node {
+	return n.walk1(1)
+}
+
+func (n *Node) walk1(a int) *Node {
+	if n == nil {
+		return nil
+	}
+
+	if n.c[a] != nil {
+		n = n.c[a]
+		for n.c[a^1] != nil {
+			n = n.c[a^1]
+		}
+		return n
+	}
+
+	p := n.p
+	for p != nil && p.c[a] == n {
+		n = p
+		p = p.p
+	}
+	return p
 }
