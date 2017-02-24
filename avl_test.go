@@ -104,6 +104,15 @@ func TestBalanceOrdered(t *testing.T) {
 	tree.checkBalance(t)
 }
 
+func TestDeleteSize(t *testing.T) {
+	tree, _ := newIntTree(nodes)
+	oldsize := tree.Size()
+	dels := tree.deleteSome(dels)
+	if tree.Size() != oldsize-dels {
+		t.Errorf("Size does not match: oldsize-dels %d, tree.Size() %d\n", oldsize-dels, tree.Size())
+	}
+}
+
 func (tree *Tree) checkOrdered(t *testing.T) {
 	n := tree.Min()
 	for next := n.Next(); next != nil; next = n.Next() {
