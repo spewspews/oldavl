@@ -55,7 +55,10 @@ func TestInsertDuplicates(t *testing.T) {
 	if old == nil {
 		t.Error("Should have gotten duplicate")
 	}
-	t.Logf("Duplicate value is %d\n", (*old).(Int))
+	v := (*old).(Int)
+	if v != 5 {
+		t.Error("Got the wrong value")
+	}
 }
 
 func TestInsertKeyValDuplicates(t *testing.T) {
@@ -64,23 +67,24 @@ func TestInsertKeyValDuplicates(t *testing.T) {
 
 	old = tree.Insert(&IntString{3, "three"})
 	if old != nil {
-		t.Errorf("got bad duplicate %d\n", (*old).(*IntString).key)
+		v := (*old).(*IntString)
+		t.Errorf("got bad duplicate %d\n", v.key)
 	}
 
 	old = tree.Insert(&IntString{4, "four"})
 	if old != nil {
-		t.Errorf("got bad duplicate %d\n", (*old).(*IntString).key)
+		v := (*old).(*IntString)
+		t.Errorf("got bad duplicate %d\n", v.key)
 	}
 
 	old = tree.Insert(&IntString{3, "newthree"})
 	if old == nil {
 		t.Error("Should have gotten duplicate")
 	}
-	s := (*old).(*IntString).val
-	if s != "three" {
+	v := (*old).(*IntString)
+	if v.key != 3 || v.val != "three" {
 		t.Error("Got the wrong value")
 	}
-	t.Logf("Duplicate value is %s\n", s)
 }
 
 func TestDeleteOrdered(t *testing.T) {
