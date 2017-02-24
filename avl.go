@@ -34,6 +34,26 @@ func (t *Tree) Size() int {
 	return t.size
 }
 
+// Lookup looks up val and returns the matching element if
+// it is found.
+//
+// Val's Less implementation must be able to handle
+// comparisons to elements stored in this tree.
+func (t *Tree) Lookup(val Ordered) (match Ordered, found bool) {
+	n := t.root
+	for n != nil {
+		switch cmp(val, n.Val) {
+		case -1:
+			n = n.c[0]
+		case 0:
+			return n.Val, true
+		case 1:
+			n = n.c[1]
+		}
+	}
+	return
+}
+
 // Insert looks up val and inserts it into the tree.
 // If a matching element is found in the tree then the
 // found element delval is removed from the tree and returned.
