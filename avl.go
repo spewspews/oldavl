@@ -34,29 +34,25 @@ func (t *Tree) Size() int {
 	return t.size
 }
 
-// Insert inserts the element val into the tree. If
-// the value being inserted is already in the tree
-// then the original value and true are returned.
-// Otherwise the boolean return value is false.
+// Insert looks up val and inserts it into the tree.
+// If a matching element is found in the tree then the
+// found element oldval is removed from the tree and returned.
 //
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
-func (t *Tree) Insert(val Ordered) (Ordered, bool) {
+func (t *Tree) Insert(val Ordered) (delval Ordered, found bool) {
 	var insert func(p, q *Node) (*Node, bool)
-
-	var old Ordered
-	dup := false
 	insert = func(p, q *Node) (*Node, bool) {
 		if q == nil {
-			new := &Node{Val: val, p: p}
 			t.size++
+			new := &Node{Val: val, p: p}
 			return new, true
 		}
 
 		c := cmp(val, q.Val)
 		if c == 0 {
-			old = q.Val
-			dup = true
+			delval = q.Val
+			found = true
 			q.Val = val
 			return q, false
 		}
@@ -71,49 +67,52 @@ func (t *Tree) Insert(val Ordered) (Ordered, bool) {
 	}
 
 	t.root, _ = insert(nil, t.root)
-	return old, dup
+	return
 }
 
-// Delete deletes the element Val from the tree and returns
-// whether the item was found and deletion was successful.
+// Delete looks up val and deletes the matching element
+// from the tree. The found element oldval is returned.
+//
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
-func (t *Tree) Delete(val Ordered) bool {
-	del := false
-	t.root, _ = delete(t.root, val, &del)
-	return del
-}
-
-func delete(q *Node, val Ordered, del *bool) (*Node, bool) {
-	if q == nil {
-		return nil, false
-	}
-
-	c := cmp(val, q.Val)
-	if c == 0 {
-		*del = true
-		if q.c[1] == nil {
-			if q.c[0] != nil {
-				q.c[0].p = q.p
-			}
-			return q.c[0], true
+func (t *Tree) Delete(val Ordered) (delval Ordered, found bool) {
+	var delete func(*Node) (*Node, bool)
+	delete = func(q *Node) (*Node, bool) {
+		if q == nil {
+			return nil, false
 		}
-		var min Ordered
+
+		c := cmp(val, q.Val)
+		if c == 0 {
+			t.size--
+			delval = q.Val
+			found = true
+			if q.c[1] == nil {
+				if q.c[0] != nil {
+					q.c[0].p = q.p
+				}
+				return q.c[0], true
+			}
+			var min Ordered
+			var fix bool
+			q.c[1], fix = deletemin(q.c[1], &min)
+			q.Val = min
+			if fix {
+				return deletefix(-1, q)
+			}
+			return q, false
+		}
+		a := (c + 1) / 2
 		var fix bool
-		q.c[1], fix = deletemin(q.c[1], &min)
-		q.Val = min
+		q.c[a], fix = delete(q.c[a])
 		if fix {
-			return deletefix(-1, q)
+			return deletefix(-c, q)
 		}
 		return q, false
 	}
-	a := (c + 1) / 2
-	var fix bool
-	q.c[a], fix = delete(q.c[a], val, del)
-	if fix {
-		return deletefix(-c, q)
-	}
-	return q, false
+
+	t.root, _ = delete(t.root)
+	return
 }
 
 func deletemin(q *Node, min *Ordered) (*Node, bool) {

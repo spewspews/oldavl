@@ -28,73 +28,78 @@ func (is *IntString) Less(j Ordered) bool {
 }
 
 func TestInsertOrdered(t *testing.T) {
-	tree := newIntTree(nodes)
+	tree, _ := newIntTree(nodes)
 	tree.checkOrdered(t)
 }
 
 func TestInsertBalanced(t *testing.T) {
-	tree := newIntTree(nodes)
+	tree, _ := newIntTree(nodes)
 	tree.checkBalance(t)
 }
 
+func TestInsertSize(t *testing.T) {
+	tree, size := newIntTree(nodes)
+	if size != tree.Size() {
+		t.Errorf("Size does not match: size %d, tree.Size() %d\n", size, tree.Size())
+	}
+}
+
 func TestInsertDuplicates(t *testing.T) {
-	var old *Ordered
 	tree := new(Tree)
 
-	old = tree.Insert(Int(5))
-	if old != nil {
-		t.Errorf("got bad duplicate %d\n", (*old).(Int))
+	old, found := tree.Insert(Int(5))
+	if found {
+		t.Errorf("got bad duplicate %d\n", old.(Int))
 	}
 
-	old = tree.Insert(Int(6))
-	if old != nil {
-		t.Errorf("got bad duplicate %d\n", (*old).(Int))
+	old, found = tree.Insert(Int(6))
+	if found {
+		t.Errorf("got bad duplicate %d\n", old.(Int))
 	}
 
-	old = tree.Insert(Int(5))
-	if old == nil {
+	old, found = tree.Insert(Int(5))
+	if !found {
 		t.Error("Should have gotten duplicate")
 	}
-	v := (*old).(Int)
+	v := old.(Int)
 	if v != 5 {
 		t.Error("Got the wrong value")
 	}
 }
 
 func TestInsertKeyValDuplicates(t *testing.T) {
-	var old *Ordered
 	tree := new(Tree)
 
-	old = tree.Insert(&IntString{3, "three"})
-	if old != nil {
-		v := (*old).(*IntString)
+	old, found := tree.Insert(&IntString{3, "three"})
+	if found {
+		v := old.(*IntString)
 		t.Errorf("got bad duplicate %d\n", v.key)
 	}
 
-	old = tree.Insert(&IntString{4, "four"})
-	if old != nil {
-		v := (*old).(*IntString)
+	old, found = tree.Insert(&IntString{4, "four"})
+	if found {
+		v := old.(*IntString)
 		t.Errorf("got bad duplicate %d\n", v.key)
 	}
 
-	old = tree.Insert(&IntString{3, "newthree"})
-	if old == nil {
+	old, found = tree.Insert(&IntString{3, "three"})
+	if !found {
 		t.Error("Should have gotten duplicate")
 	}
-	v := (*old).(*IntString)
+	v := old.(*IntString)
 	if v.key != 3 || v.val != "three" {
-		t.Error("Got the wrong value")
+		t.Errorf("Got the wrong values: %d %s", v.key, v.val)
 	}
 }
 
 func TestDeleteOrdered(t *testing.T) {
-	tree := newIntTree(nodes)
+	tree, _ := newIntTree(nodes)
 	tree.deleteSome(dels)
 	tree.checkOrdered(t)
 }
 
 func TestBalanceOrdered(t *testing.T) {
-	tree := newIntTree(nodes)
+	tree, _ := newIntTree(nodes)
 	tree.deleteSome(dels)
 	tree.checkBalance(t)
 }
@@ -117,24 +122,30 @@ func (tree *Tree) checkBalance(t *testing.T) {
 	}
 }
 
-func newIntTree(n int) *Tree {
+func newIntTree(n int) (*Tree, int) {
 	tree := new(Tree)
 	seed := time.Now().UTC().UnixNano()
 	rng := rand.New(rand.NewSource(seed))
+	ins := 0
 	for i := 0; i < n; i++ {
 		r := Int(rng.Intn(randMax))
-		tree.Insert(r)
+		if _, found := tree.Insert(r); !found {
+			ins++
+		}
 	}
-	return tree
+	return tree, ins
 }
 
-func (tree *Tree) deleteSome(n int) {
+func (tree *Tree) deleteSome(n int) (dels int) {
 	seed := time.Now().UTC().UnixNano()
 	rng := rand.New(rand.NewSource(seed))
 	for i := 0; i < n; i++ {
 		r := Int(rng.Intn(randMax))
-		tree.Delete(r)
+		if _, found := tree.Delete(r); found {
+			dels++
+		}
 	}
+	return
 }
 
 func checkBalance(n *Node) bool {
