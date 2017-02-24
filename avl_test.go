@@ -18,6 +18,15 @@ func (i Int) Less(j Ordered) bool {
 	return i < j.(Int)
 }
 
+type IntString struct {
+	key int
+	val string
+}
+
+func (is *IntString) Less(j Ordered) bool {
+	return is.key < j.(*IntString).key
+}
+
 func TestInsertOrdered(t *testing.T) {
 	tree := newIntTree(nodes)
 	tree.checkOrdered(t)
@@ -26,6 +35,52 @@ func TestInsertOrdered(t *testing.T) {
 func TestInsertBalanced(t *testing.T) {
 	tree := newIntTree(nodes)
 	tree.checkBalance(t)
+}
+
+func TestInsertDuplicates(t *testing.T) {
+	var old *Ordered
+	tree := new(Tree)
+
+	old = tree.Insert(Int(5))
+	if old != nil {
+		t.Errorf("got bad duplicate %d\n", (*old).(Int))
+	}
+
+	old = tree.Insert(Int(6))
+	if old != nil {
+		t.Errorf("got bad duplicate %d\n", (*old).(Int))
+	}
+
+	old = tree.Insert(Int(5))
+	if old == nil {
+		t.Error("Should have gotten duplicate")
+	}
+	t.Logf("Duplicate value is %d\n", (*old).(Int))
+}
+
+func TestInsertKeyValDuplicates(t *testing.T) {
+	var old *Ordered
+	tree := new(Tree)
+
+	old = tree.Insert(&IntString{3, "three"})
+	if old != nil {
+		t.Errorf("got bad duplicate %d\n", (*old).(*IntString).key)
+	}
+
+	old = tree.Insert(&IntString{4, "four"})
+	if old != nil {
+		t.Errorf("got bad duplicate %d\n", (*old).(*IntString).key)
+	}
+
+	old = tree.Insert(&IntString{3, "newthree"})
+	if old == nil {
+		t.Error("Should have gotten duplicate")
+	}
+	s := (*old).(*IntString).val
+	if s != "three" {
+		t.Error("Got the wrong value")
+	}
+	t.Logf("Duplicate value is %s\n", s)
 }
 
 func TestDeleteOrdered(t *testing.T) {

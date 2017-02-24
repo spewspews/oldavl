@@ -38,9 +38,9 @@ func (t *Tree) Size() int {
 // implementation must be able to handle comparisons to
 // elements stored in this tree.
 func (t *Tree) Insert(val Ordered) *Ordered {
-	var old *Ordered
 	var insert func(p, q *Node) (*Node, bool)
 
+	var old *Ordered
 	insert = func(p, q *Node) (*Node, bool) {
 		if q == nil {
 			new := &Node{Val: val}
@@ -51,6 +51,7 @@ func (t *Tree) Insert(val Ordered) *Ordered {
 
 		c := cmp(val, q.Val)
 		if c == 0 {
+			old = new(Ordered)
 			*old = q.Val
 			q.Val = val
 			return q, false
