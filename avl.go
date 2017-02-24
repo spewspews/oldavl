@@ -36,7 +36,7 @@ func (t *Tree) Size() int {
 
 // Insert looks up val and inserts it into the tree.
 // If a matching element is found in the tree then the
-// found element oldval is removed from the tree and returned.
+// found element delval is removed from the tree and returned.
 //
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
