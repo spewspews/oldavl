@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	randMax = 100000
+	randMax = 10000
 	nodes   = 1000
 	dels    = 300
 )
@@ -109,7 +109,88 @@ func TestDeleteSize(t *testing.T) {
 	oldsize := tree.Size()
 	dels := tree.deleteSome(dels)
 	if tree.Size() != oldsize-dels {
-		t.Errorf("Size does not match: oldsize-dels %d, tree.Size() %d\n", oldsize-dels, tree.Size())
+		t.Errorf("Size does not match: oldsize-dels %d, tree.Size() %d", oldsize-dels, tree.Size())
+	}
+}
+
+func TestLookups(t *testing.T) {
+	tree := new(Tree)
+	seed := time.Now().UTC().UnixNano()
+	rng := rand.New(rand.NewSource(seed))
+	vals := make(map[Int]bool)
+	for i := 0; i < nodes; i++ {
+		r := Int(rng.Intn(randMax))
+		tree.Insert(r)
+		vals[r] = true
+	}
+	for i := 0; i < randMax; i++ {
+		inMap := vals[Int(i)]
+		_, inTree := tree.Lookup(Int(i))
+		msg := ""
+		switch inMap {
+		case true:
+			if !inTree {
+				msg = "value found in map but not in tree"
+			}
+		case false:
+			if inTree {
+				msg = "value found in tree but not in map"
+			}
+		}
+		if msg != "" {
+			t.Errorf("Mismatch between map and tree: %s", msg)
+		}
+	}
+}
+
+func TestLookupsAfterDeletions(t *testing.T) {
+	tree := new(Tree)
+	seed := time.Now().UTC().UnixNano()
+	rng := rand.New(rand.NewSource(seed))
+	vals := make(map[Int]bool)
+	for i := 0; i < nodes; i++ {
+		r := Int(rng.Intn(randMax))
+		tree.Insert(r)
+		vals[r] = true
+	}
+	if len(vals) != tree.Size() {
+		t.Errorf("Size mismatch between map and tree: %d %d\n", len(vals), tree.Size())
+	}
+	t.Logf("Inserted %d elements\n", tree.Size())
+	oldSize := tree.Size()
+	deleted := 0
+	for i := 0; i < dels; i++ {
+		r := Int(rng.Intn(randMax))
+		if _, found := tree.Delete(r); found {
+			deleted++
+		}
+		delete(vals, r)
+	}
+	newSize := oldSize - deleted
+	if len(vals) != newSize {
+		t.Errorf("There should be %d values in the map\n", newSize)
+	}
+	if tree.Size() != newSize {
+		t.Errorf("there should be %d values in the tree\n", newSize)
+	}
+	t.Logf("Succesfully deleted %d values\n", newSize)
+	for i := 0; i < randMax; i++ {
+		inMap := vals[Int(i)]
+		_, inTree := tree.Lookup(Int(i))
+		msg := ""
+		switch inMap {
+		case true:
+			if !inTree {
+				msg = "value found in map but not in tree"
+			}
+		case false:
+			if inTree {
+				msg = "value found in tree but not in map"
+			}
+		}
+		if msg != "" {
+			t.Errorf("Mismatch between map and tree: %s", msg)
+		}
 	}
 }
 
