@@ -46,6 +46,24 @@ func TestInsertSize(t *testing.T) {
 	}
 }
 
+func TestWalk(t *testing.T) {
+	tree, _ := newIntTree(nodes, randMax)
+	i := 0
+	for n := tree.Min(); n != nil; n = n.Next() {
+		i++
+	}
+	if i != tree.Size() {
+		t.Errorf("Walk up not the same size as tree: %d %d\n", i, tree.Size())
+	}
+	i = 0
+	for n := tree.Max(); n != nil; n = n.Prev() {
+		i++
+	}
+	if i != tree.Size() {
+		t.Errorf("Walk down not the same size as tree: %d %d\n", i, tree.Size())
+	}
+}
+
 func TestInsertDuplicates(t *testing.T) {
 	tree := new(Tree)
 
@@ -114,6 +132,27 @@ func TestDeleteSize(t *testing.T) {
 	dels := tree.deleteSome(dels)
 	if tree.Size() != oldsize-dels {
 		t.Errorf("Size does not match: oldsize-dels %d, tree.Size() %d", oldsize-dels, tree.Size())
+	}
+}
+
+func TestDeleteWalk(t *testing.T) {
+	tree, _ := newIntTree(nodes, randMax)
+	t.Logf("Tree has %d elements\n", tree.Size())
+	d := tree.deleteSome(dels)
+	t.Logf("Deleted %d elements\n", d)
+	i := 0
+	for n := tree.Min(); n != nil; n = n.Next() {
+		i++
+	}
+	if i != tree.Size() {
+		t.Errorf("Walk up not the same size as tree: %d %d\n", i, tree.Size())
+	}
+	i = 0
+	for n := tree.Max(); n != nil; n = n.Prev() {
+		i++
+	}
+	if i != tree.Size() {
+		t.Errorf("Walk down not the same size as tree: %d %d\n", i, tree.Size())
 	}
 }
 
@@ -210,10 +249,21 @@ func (tree *Tree) checkOrdered(t *testing.T) {
 
 func (tree *Tree) checkBalance(t *testing.T) {
 	for n := tree.Min(); n != nil; n = n.Next() {
-		if !checkBalance(n) {
+		if !n.checkBalance(t) {
 			t.Errorf("Tree not balanced")
 		}
 	}
+}
+
+func (n *Node) checkBalance(t *testing.T) bool {
+	left := depth(n.c[0])
+	right := depth(n.c[1])
+//	t.Logf("Balance is %d %d\n", left, right)
+	b := right - left
+	if int8(b) != n.b {
+		return false
+	}
+	return true
 }
 
 func newIntTree(n, randMax int) (*Tree, int) {
@@ -240,16 +290,6 @@ func (tree *Tree) deleteSome(n int) (dels int) {
 		}
 	}
 	return
-}
-
-func checkBalance(n *Node) bool {
-	left := depth(n.c[0])
-	right := depth(n.c[1])
-	b := right - left
-	if int8(b) != n.b {
-		return false
-	}
-	return true
 }
 
 func depth(n *Node) int {
