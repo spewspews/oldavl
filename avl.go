@@ -11,12 +11,13 @@ var dbgLog = log.New(ioutil.Discard, "avl: ", log.LstdFlags)
 // Tree holds elements of the AVL tree.
 type Tree struct {
 	root *Node
+	size int
 }
 
 // Ordered defines the comparison used to store
 // elements in the AVL tree.
 type Ordered interface {
-	Less(interface{}) bool
+	Less(Ordered) bool
 }
 
 // A Node holds an Ordered element of the AVL tree in
@@ -28,33 +29,100 @@ type Node struct {
 	b   int8
 }
 
+// Size returns the number of elements stored in the tree.
+func (t *Tree) Size() int {
+	return t.size
+}
+
 // Insert inserts the element Val into the tree. Val's Less
 // implementation must be able to handle comparisons to
 // elements stored in this tree.
-func (t *Tree) Insert(Val Ordered) {
-	new := &Node{Val: Val}
-	t.root, _ = insert(nil, t.root, new)
-}
+func (t *Tree) Insert(val Ordered) *Ordered {
+	var old *Ordered
+	var insert func(p, q *Node) (*Node, bool)
 
-func insert(p, q, new *Node) (*Node, bool) {
-	if q == nil {
-		new.p = p
-		dbgLog.Printf("insert: Inserting %p:%v\n", new, new)
-		return new, true
-	}
+	insert = func(p, q *Node) (*Node, bool) {
+		if q == nil {
+			new := &Node{Val: val}
+			new.p = p
+			t.size++
+			return new, true
+		}
 
-	c := cmp(new.Val, q.Val)
-	if c == 0 {
-		dbgLog.Printf("insert: collision: %p:%v %p:%v\n", q, q, new, new)
-		q.Val = new.Val
+		c := cmp(val, q.Val)
+		if c == 0 {
+			*old = q.Val
+			q.Val = val
+			return q, false
+		}
+
+		a := (c + 1) / 2
+		var fix bool
+		q.c[a], fix = insert(q, q.c[a])
+		if fix {
+			return insertfix(c, q)
+		}
 		return q, false
 	}
 
+	t.root, _ = insert(nil, t.root)
+	return old
+}
+
+// Delete deletes the element Val from the tree and returns
+// whether the item was found and deletion was successful.
+// Val's Less implementation must be able to handle
+// comparisons to elements stored in this tree.
+func (t *Tree) Delete(val Ordered) bool {
+	del := false
+	t.root, _ = delete(t.root, val, &del)
+	return del
+}
+
+func delete(q *Node, val Ordered, del *bool) (*Node, bool) {
+	if q == nil {
+		return nil, false
+	}
+
+	c := cmp(val, q.Val)
+	if c == 0 {
+		*del = true
+		if q.c[1] == nil {
+			if q.c[0] != nil {
+				q.c[0].p = q.p
+			}
+			return q.c[0], true
+		}
+		var min Ordered
+		var fix bool
+		q.c[1], fix = deletemin(q.c[1], &min)
+		q.Val = min
+		if fix {
+			return deletefix(-1, q)
+		}
+		return q, false
+	}
 	a := (c + 1) / 2
-	ch, fix := insert(q, q.c[a], new)
-	q.c[a] = ch
+	var fix bool
+	q.c[a], fix = delete(q.c[a], val, del)
 	if fix {
-		return insertfix(c, q)
+		return deletefix(-c, q)
+	}
+	return q, false
+}
+
+func deletemin(q *Node, min *Ordered) (*Node, bool) {
+	if q.c[0] == nil {
+		*min = q.Val
+		if q.c[1] != nil {
+			q.c[1].p = q.p
+		}
+		return q.c[1], true
+	}
+	var fix bool
+	q.c[0], fix = deletemin(q.c[0], min)
+	if fix {
+		return deletefix(1, q)
 	}
 	return q, false
 }
@@ -83,6 +151,29 @@ func insertfix(c int8, s *Node) (*Node, bool) {
 		s = doublerot(c, s)
 	}
 	return s, false
+}
+
+func deletefix(c int8, s *Node) (*Node, bool) {
+	if s.b == 0 {
+		s.b = c
+		return s, false
+	}
+	if s.b == -c {
+		s.b = 0
+		return s, true
+	}
+	a := (c + 1) / 2
+	if s.c[a].b == 0 {
+		s = rotate(c, s)
+		s.b = -c
+		return s, false
+	}
+	if s.c[a].b == c {
+		s = singlerot(c, s)
+	} else {
+		s = doublerot(c, s)
+	}
+	return s, true
 }
 
 func singlerot(c int8, s *Node) *Node {
