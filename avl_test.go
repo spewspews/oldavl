@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	randMax = 10000
+	randMax = 2000
 	nodes   = 1000
 	dels    = 300
 )
@@ -100,9 +100,11 @@ func TestDeleteOrdered(t *testing.T) {
 	tree.checkOrdered(t)
 }
 
-func TestBalanceOrdered(t *testing.T) {
+func TestDeleteBalanced(t *testing.T) {
 	tree, _ := newIntTree(nodes, randMax)
-	tree.deleteSome(dels)
+	t.Logf("Tree has %d elements\n", tree.Size())
+	d := tree.deleteSome(dels)
+	t.Logf("Deleted %d elements\n", d)
 	tree.checkBalance(t)
 }
 
@@ -280,11 +282,12 @@ func BenchmarkLookup100000(b *testing.B) {
 }
 
 func benchmarkLookup(b *testing.B, size int) {
+	b.StopTimer()
 	tree := new(Tree)
 	for n := 0; n < size; n++ {
 		tree.Insert(Int(n))
 	}
-	b.ResetTimer()
+	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		for n := 0; n < size; n++ {
 			tree.Lookup(Int(n))
@@ -309,8 +312,9 @@ func BenchmarkLookupRandom100000(b *testing.B) {
 }
 
 func benchmarkLookupRandom(b *testing.B, size int) {
+	b.StopTimer()
 	tree, _ := newIntTree(size, size)
-	b.ResetTimer()
+	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		for n := 0; n < size; n++ {
 			tree.Lookup(Int(n))
@@ -335,11 +339,12 @@ func BenchmarkRedBlackGet100000(b *testing.B) {
 }
 
 func benchmarkRedBlackGet(b *testing.B, size int) {
+	b.StopTimer()
 	tree := rbt.NewWithIntComparator()
 	for n := 0; n < size; n++ {
 		tree.Put(n, struct{}{})
 	}
-	b.ResetTimer()
+	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		for n := 0; n < size; n++ {
 			tree.Get(n)
@@ -364,13 +369,14 @@ func BenchmarkRedBlackGetRandom100000(b *testing.B) {
 }
 
 func benchmarkRedBlackGetRandom(b *testing.B, size int) {
+	b.StopTimer()
 	tree := rbt.NewWithIntComparator()
 	seed := time.Now().UTC().UnixNano()
 	rng := rand.New(rand.NewSource(seed))
 	for n := 0; n < size; n++ {
 		tree.Put(rng.Intn(size), struct{}{})
 	}
-	b.ResetTimer()
+	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		for n := 0; n < size; n++ {
 			tree.Get(n)
