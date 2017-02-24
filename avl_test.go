@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+
+	rbt "github.com/emirpasic/gods/trees/redblacktree"
 )
 
 const (
@@ -28,17 +30,17 @@ func (is *IntString) Less(j Ordered) bool {
 }
 
 func TestInsertOrdered(t *testing.T) {
-	tree, _ := newIntTree(nodes)
+	tree, _ := newIntTree(nodes, randMax)
 	tree.checkOrdered(t)
 }
 
 func TestInsertBalanced(t *testing.T) {
-	tree, _ := newIntTree(nodes)
+	tree, _ := newIntTree(nodes, randMax)
 	tree.checkBalance(t)
 }
 
 func TestInsertSize(t *testing.T) {
-	tree, size := newIntTree(nodes)
+	tree, size := newIntTree(nodes, randMax)
 	if size != tree.Size() {
 		t.Errorf("Size does not match: size %d, tree.Size() %d\n", size, tree.Size())
 	}
@@ -93,19 +95,19 @@ func TestInsertKeyValDuplicates(t *testing.T) {
 }
 
 func TestDeleteOrdered(t *testing.T) {
-	tree, _ := newIntTree(nodes)
+	tree, _ := newIntTree(nodes, randMax)
 	tree.deleteSome(dels)
 	tree.checkOrdered(t)
 }
 
 func TestBalanceOrdered(t *testing.T) {
-	tree, _ := newIntTree(nodes)
+	tree, _ := newIntTree(nodes, randMax)
 	tree.deleteSome(dels)
 	tree.checkBalance(t)
 }
 
 func TestDeleteSize(t *testing.T) {
-	tree, _ := newIntTree(nodes)
+	tree, _ := newIntTree(nodes, randMax)
 	oldsize := tree.Size()
 	dels := tree.deleteSome(dels)
 	if tree.Size() != oldsize-dels {
@@ -212,7 +214,7 @@ func (tree *Tree) checkBalance(t *testing.T) {
 	}
 }
 
-func newIntTree(n int) (*Tree, int) {
+func newIntTree(n, randMax int) (*Tree, int) {
 	tree := new(Tree)
 	seed := time.Now().UTC().UnixNano()
 	rng := rand.New(rand.NewSource(seed))
@@ -259,4 +261,119 @@ func depth(n *Node) int {
 		return ld + 1
 	}
 	return rd + 1
+}
+
+func BenchmarkLookup100(b *testing.B) {
+	benchmarkLookup(b, 100)
+}
+
+func BenchmarkLookup1000(b *testing.B) {
+	benchmarkLookup(b, 1000)
+}
+
+func BenchmarkLookup10000(b *testing.B) {
+	benchmarkLookup(b, 10000)
+}
+
+func BenchmarkLookup100000(b *testing.B) {
+	benchmarkLookup(b, 100000)
+}
+
+func benchmarkLookup(b *testing.B, size int) {
+	tree := new(Tree)
+	for n := 0; n < size; n++ {
+		tree.Insert(Int(n))
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for n := 0; n < size; n++ {
+			tree.Lookup(Int(n))
+		}
+	}
+}
+
+func BenchmarkLookupRandom100(b *testing.B) {
+	benchmarkLookupRandom(b, 100)
+}
+
+func BenchmarkLookupRandom1000(b *testing.B) {
+	benchmarkLookupRandom(b, 1000)
+}
+
+func BenchmarkLookupRandom10000(b *testing.B) {
+	benchmarkLookupRandom(b, 10000)
+}
+
+func BenchmarkLookupRandom100000(b *testing.B) {
+	benchmarkLookupRandom(b, 100000)
+}
+
+func benchmarkLookupRandom(b *testing.B, size int) {
+	tree, _ := newIntTree(size, size)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for n := 0; n < size; n++ {
+			tree.Lookup(Int(n))
+		}
+	}
+}
+
+func BenchmarkRedBlackGet100(b *testing.B) {
+	benchmarkRedBlackGet(b, 100)
+}
+
+func BenchmarkRedBlackGet1000(b *testing.B) {
+	benchmarkRedBlackGet(b, 1000)
+}
+
+func BenchmarkRedBlackGet10000(b *testing.B) {
+	benchmarkRedBlackGet(b, 10000)
+}
+
+func BenchmarkRedBlackGet100000(b *testing.B) {
+	benchmarkRedBlackGet(b, 100000)
+}
+
+func benchmarkRedBlackGet(b *testing.B, size int) {
+	tree := rbt.NewWithIntComparator()
+	for n := 0; n < size; n++ {
+		tree.Put(n, struct{}{})
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for n := 0; n < size; n++ {
+			tree.Get(n)
+		}
+	}
+}
+
+func BenchmarkRedBlackGetRandom100(b *testing.B) {
+	benchmarkRedBlackGetRandom(b, 100)
+}
+
+func BenchmarkRedBlackGetRandom1000(b *testing.B) {
+	benchmarkRedBlackGetRandom(b, 1000)
+}
+
+func BenchmarkRedBlackGetRandom10000(b *testing.B) {
+	benchmarkRedBlackGetRandom(b, 10000)
+}
+
+func BenchmarkRedBlackGetRandom100000(b *testing.B) {
+	benchmarkRedBlackGetRandom(b, 100000)
+}
+
+func benchmarkRedBlackGetRandom(b *testing.B, size int) {
+	tree := rbt.NewWithIntComparator()
+	seed := time.Now().UTC().UnixNano()
+	rng := rand.New(rand.NewSource(seed))
+	for n := 0; n < size; n++ {
+		tree.Put(rng.Intn(size), struct{}{})
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for n := 0; n < size; n++ {
+			tree.Get(n)
+		}
+	}
 }
