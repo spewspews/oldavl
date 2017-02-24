@@ -34,28 +34,29 @@ func (t *Tree) Size() int {
 	return t.size
 }
 
-// Insert inserts the element val into the tree. It returns
-// nil if the value being inserted is not already in the tree
-// and a pointer to the value being replaced otherwise.
+// Insert inserts the element val into the tree. If
+// the value being inserted is already in the tree
+// then the original value and true are returned.
+// Otherwise the boolean return value is false.
 //
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
-func (t *Tree) Insert(val Ordered) *Ordered {
+func (t *Tree) Insert(val Ordered) (Ordered, bool) {
 	var insert func(p, q *Node) (*Node, bool)
 
-	var old *Ordered
+	var old Ordered
+	dup := false
 	insert = func(p, q *Node) (*Node, bool) {
 		if q == nil {
-			new := &Node{Val: val}
-			new.p = p
+			new := &Node{Val: val, p: p}
 			t.size++
 			return new, true
 		}
 
 		c := cmp(val, q.Val)
 		if c == 0 {
-			old = new(Ordered)
-			*old = q.Val
+			old = q.Val
+			dup = true
 			q.Val = val
 			return q, false
 		}
@@ -70,7 +71,7 @@ func (t *Tree) Insert(val Ordered) *Ordered {
 	}
 
 	t.root, _ = insert(nil, t.root)
-	return old
+	return old, dup
 }
 
 // Delete deletes the element Val from the tree and returns
