@@ -152,13 +152,14 @@ func deletemin(q *Node, min *Ordered) (*Node, bool) {
 }
 
 func cmp(a, b Ordered) int8 {
-	if a.Less(b) {
+	switch {
+	case a.Less(b):
 		return -1
-	}
-	if b.Less(a) {
+	default:
+		return 0
+	case b.Less(a):
 		return 1
 	}
-	return 0
 }
 
 func insertfix(c int8, s *Node) (*Node, bool) {
