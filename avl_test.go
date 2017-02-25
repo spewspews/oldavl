@@ -10,13 +10,14 @@ import (
 
 const (
 	randMax = 2000
-	nNodes   = 1000
-	nDels    = 300
+	nNodes  = 1000
+	nDels   = 300
 )
 
 var rng *rand.Rand
 
 type Int int
+
 func (i Int) Less(j Ordered) bool {
 	return i < j.(Int)
 }
@@ -25,6 +26,7 @@ type IntString struct {
 	key int
 	val string
 }
+
 func (is *IntString) Less(j Ordered) bool {
 	return is.key < j.(*IntString).key
 }
