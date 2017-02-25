@@ -91,16 +91,17 @@ func (t *Tree) Insert(val Ordered) (delval Ordered, found bool) {
 	return
 }
 
-// Delete looks up val and deletes the matching element
+// Delete looks up val and dels the matching element
 // from the tree. The found element oldval is returned.
 //
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
 func (t *Tree) Delete(val Ordered) (delval Ordered, found bool) {
-	var delete func(*Node) (*Node, bool)
-	delete = func(q *Node) (*Node, bool) {
+	var del func(**Node) bool
+	del = func(qp **Node) bool {
+		q := *qp
 		if q == nil {
-			return nil, false
+			return false
 		}
 
 		c := cmp(val, q.Val)
@@ -112,44 +113,42 @@ func (t *Tree) Delete(val Ordered) (delval Ordered, found bool) {
 				if q.c[0] != nil {
 					q.c[0].p = q.p
 				}
-				return q.c[0], true
+				*qp = q.c[0]
+				return true
 			}
-			var min Ordered
-			var fix bool
-			q.c[1], fix = deletemin(q.c[1], &min)
-			q.Val = min
+			fix := delmin(&q.c[1], &q.Val)
 			if fix {
-				return deleteFix(-1, q)
+				return delFix(-1, qp)
 			}
-			return q, false
+			return false
 		}
 		a := (c + 1) / 2
-		var fix bool
-		q.c[a], fix = delete(q.c[a])
+		fix := del(&q.c[a])
 		if fix {
-			return deleteFix(-c, q)
+			return delFix(-c, qp)
 		}
-		return q, false
+		return false
 	}
 
-	t.root, _ = delete(t.root)
+	del(&t.root)
 	return
 }
 
-func deletemin(q *Node, min *Ordered) (*Node, bool) {
+func delmin(qp **Node, min *Ordered) bool {
+	q := *qp
 	if q.c[0] == nil {
 		*min = q.Val
 		if q.c[1] != nil {
 			q.c[1].p = q.p
 		}
-		return q.c[1], true
+		*qp = q.c[1]
+		return true
 	}
-	var fix bool
-	q.c[0], fix = deletemin(q.c[0], min)
+	fix := delmin(&q.c[0], min)
 	if fix {
-		return deleteFix(1, q)
+		return delFix(1, qp)
 	}
-	return q, false
+	return false
 }
 
 func cmp(a, b Ordered) int8 {
@@ -184,27 +183,33 @@ func insertFix(c int8, t **Node) bool {
 	return false
 }
 
-func deleteFix(c int8, s *Node) (*Node, bool) {
+func delFix(c int8, t **Node) bool {
+	s := *t
 	if s.b == 0 {
 		s.b = c
-		return s, false
+		return false
 	}
+
 	if s.b == -c {
 		s.b = 0
-		return s, true
+		return true
 	}
+
 	a := (c + 1) / 2
 	if s.c[a].b == 0 {
 		s = rotate(c, s)
 		s.b = -c
-		return s, false
+		*t = s
+		return false
 	}
+
 	if s.c[a].b == c {
 		s = singlerot(c, s)
 	} else {
 		s = doublerot(c, s)
 	}
-	return s, true
+	*t = s
+	return true
 }
 
 func singlerot(c int8, s *Node) *Node {

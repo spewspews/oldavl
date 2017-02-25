@@ -10,12 +10,13 @@ import (
 
 const (
 	randMax = 2000
-	nodes   = 1000
-	dels    = 300
+	nNodes   = 1000
+	nDels    = 300
 )
 
-type Int int
+var rng *rand.Rand
 
+type Int int
 func (i Int) Less(j Ordered) bool {
 	return i < j.(Int)
 }
@@ -24,30 +25,60 @@ type IntString struct {
 	key int
 	val string
 }
-
 func (is *IntString) Less(j Ordered) bool {
 	return is.key < j.(*IntString).key
 }
 
+func TestMain(m *testing.M) {
+	seed := time.Now().UTC().UnixNano()
+	rng = rand.New(rand.NewSource(seed))
+	m.Run()
+}
+
 func TestInsertOrdered(t *testing.T) {
-	tree, _ := newIntTree(nodes, randMax)
+	tree := newIntTree(nNodes, randMax)
 	tree.checkOrdered(t)
 }
 
 func TestInsertBalanced(t *testing.T) {
-	tree, _ := newIntTree(nodes, randMax)
+	tree := newIntTree(nNodes, randMax)
 	tree.checkBalance(t)
 }
 
 func TestInsertSize(t *testing.T) {
-	tree, size := newIntTree(nodes, randMax)
-	if size != tree.Size() {
-		t.Errorf("Size does not match: size %d, tree.Size() %d\n", size, tree.Size())
+	tree, vals := newIntTreeAndMap(nNodes, randMax)
+	if len(vals) != tree.Size() {
+		t.Errorf("Size does not match: size %d, tree.Size() %d\n", len(vals), tree.Size())
+	}
+}
+
+func TestInsertReturn(t *testing.T) {
+	tree := new(Tree)
+	for i := 0; i < 10; i += 2 {
+		_, found := tree.Insert(Int(i))
+		if found {
+			t.Errorf("Should not have found duplicate on first loop: %d\n", i)
+		}
+	}
+	for i := 0; i < 10; i += 2 {
+		j, found := tree.Insert(Int(i))
+		if !found {
+			t.Errorf("Did not find duplicate on second loop: %d\n", i)
+		}
+		if j.(Int) != Int(i) {
+			t.Errorf("Got the wrong value %d %d\n", i, j)
+		}
+	}
+	for i := 1; i < 10; i += 2 {
+		_, found := tree.Insert(Int(i))
+		if found {
+			t.Errorf("Should not have found duplicate on second loop: %d\n", i)
+		}
 	}
 }
 
 func TestWalk(t *testing.T) {
-	tree, _ := newIntTree(nodes, randMax)
+	tree := newIntTree(nNodes, randMax)
 	i := 0
 	for n := tree.Min(); n != nil; n = n.Next() {
 		i++
@@ -113,32 +144,32 @@ func TestInsertKeyValDuplicates(t *testing.T) {
 }
 
 func TestDeleteOrdered(t *testing.T) {
-	tree, _ := newIntTree(nodes, randMax)
-	tree.deleteSome(dels)
+	tree := newIntTree(nNodes, randMax)
+	tree.deleteSome(nDels)
 	tree.checkOrdered(t)
 }
 
 func TestDeleteBalanced(t *testing.T) {
-	tree, _ := newIntTree(nodes, randMax)
+	tree := newIntTree(nNodes, randMax)
 	t.Logf("Tree has %d elements\n", tree.Size())
-	d := tree.deleteSome(dels)
+	d := tree.deleteSome(nDels)
 	t.Logf("Deleted %d elements\n", d)
 	tree.checkBalance(t)
 }
 
 func TestDeleteSize(t *testing.T) {
-	tree, _ := newIntTree(nodes, randMax)
+	tree := newIntTree(nNodes, randMax)
 	oldsize := tree.Size()
-	dels := tree.deleteSome(dels)
-	if tree.Size() != oldsize-dels {
-		t.Errorf("Size does not match: oldsize-dels %d, tree.Size() %d", oldsize-dels, tree.Size())
+	nDels := tree.deleteSome(nDels)
+	if tree.Size() != oldsize-nDels {
+		t.Errorf("Size does not match: oldsize-nDels %d, tree.Size() %d", oldsize-nDels, tree.Size())
 	}
 }
 
 func TestDeleteWalk(t *testing.T) {
-	tree, _ := newIntTree(nodes, randMax)
+	tree := newIntTree(nNodes, randMax)
 	t.Logf("Tree has %d elements\n", tree.Size())
-	d := tree.deleteSome(dels)
+	d := tree.deleteSome(nDels)
 	t.Logf("Deleted %d elements\n", d)
 	i := 0
 	for n := tree.Min(); n != nil; n = n.Next() {
@@ -157,82 +188,25 @@ func TestDeleteWalk(t *testing.T) {
 }
 
 func TestLookups(t *testing.T) {
-	tree := new(Tree)
-	seed := time.Now().UTC().UnixNano()
-	rng := rand.New(rand.NewSource(seed))
-	vals := make(map[Int]bool)
-	for i := 0; i < nodes; i++ {
-		r := Int(rng.Intn(randMax))
-		tree.Insert(r)
-		vals[r] = true
-	}
-	for i := 0; i < randMax; i++ {
-		inMap := vals[Int(i)]
-		_, inTree := tree.Lookup(Int(i))
-		msg := ""
-		switch inMap {
-		case true:
-			if !inTree {
-				msg = "value found in map but not in tree"
-			}
-		case false:
-			if inTree {
-				msg = "value found in tree but not in map"
-			}
-		}
-		if msg != "" {
-			t.Errorf("Mismatch between map and tree: %s", msg)
-		}
-	}
+	tree, vals := newIntTreeAndMap(nNodes, randMax)
+	tree.checkLookups(t, vals, randMax)
 }
 
 func TestLookupsAfterDeletions(t *testing.T) {
-	tree := new(Tree)
-	seed := time.Now().UTC().UnixNano()
-	rng := rand.New(rand.NewSource(seed))
-	vals := make(map[Int]bool)
-	for i := 0; i < nodes; i++ {
-		r := Int(rng.Intn(randMax))
-		tree.Insert(r)
-		vals[r] = true
-	}
-	if len(vals) != tree.Size() {
-		t.Errorf("Size mismatch between map and tree: %d %d\n", len(vals), tree.Size())
-	}
-	t.Logf("Inserted %d elements\n", tree.Size())
-	oldSize := tree.Size()
-	deleted := 0
-	for i := 0; i < dels; i++ {
-		r := Int(rng.Intn(randMax))
-		if _, found := tree.Delete(r); found {
-			deleted++
-		}
-		delete(vals, r)
-	}
-	newSize := oldSize - deleted
-	if len(vals) != newSize {
-		t.Errorf("There should be %d values in the map\n", newSize)
-	}
-	if tree.Size() != newSize {
-		t.Errorf("there should be %d values in the tree\n", newSize)
-	}
-	t.Logf("Succesfully deleted %d values\n", newSize)
-	for i := 0; i < randMax; i++ {
+	tree, vals := newIntTreeAndMap(nNodes, randMax)
+	tree.deleteSomeAndMap(nDels, vals)
+	tree.checkLookups(t, vals, randMax)
+}
+
+func (tree *Tree) checkLookups(t *testing.T, vals map[Int]bool, max int) {
+	for i := 0; i < max; i++ {
 		inMap := vals[Int(i)]
 		_, inTree := tree.Lookup(Int(i))
-		msg := ""
-		switch inMap {
-		case true:
-			if !inTree {
-				msg = "value found in map but not in tree"
-			}
-		case false:
-			if inTree {
-				msg = "value found in tree but not in map"
-			}
+		if inMap && !inTree {
+			t.Errorf("Mismatch: value found in map but not in tree")
 		}
-		if msg != "" {
-			t.Errorf("Mismatch between map and tree: %s", msg)
+		if inTree && !inMap {
+			t.Errorf("Mismatch: value found in tree but not in map")
 		}
 	}
 }
@@ -266,28 +240,42 @@ func (n *Node) checkBalance(t *testing.T) bool {
 	return true
 }
 
-func newIntTree(n, randMax int) (*Tree, int) {
+func newIntTree(n, randMax int) *Tree {
 	tree := new(Tree)
-	seed := time.Now().UTC().UnixNano()
-	rng := rand.New(rand.NewSource(seed))
-	ins := 0
 	for i := 0; i < n; i++ {
-		r := Int(rng.Intn(randMax))
-		if _, found := tree.Insert(r); !found {
-			ins++
-		}
+		tree.Insert(Int(rng.Intn(randMax)))
 	}
-	return tree, ins
+	return tree
 }
 
-func (tree *Tree) deleteSome(n int) (dels int) {
-	seed := time.Now().UTC().UnixNano()
-	rng := rand.New(rand.NewSource(seed))
+func newIntTreeAndMap(n, randMax int) (tree *Tree, vals map[Int]bool) {
+	tree = new(Tree)
+	vals = make(map[Int]bool)
+	for i := 0; i < nNodes; i++ {
+		r := Int(rng.Intn(randMax))
+		tree.Insert(r)
+		vals[r] = true
+	}
+	return
+}
+
+func (tree *Tree) deleteSome(n int) (nDels int) {
 	for i := 0; i < n; i++ {
 		r := Int(rng.Intn(randMax))
 		if _, found := tree.Delete(r); found {
-			dels++
+			nDels++
 		}
+	}
+	return
+}
+
+func (tree *Tree) deleteSomeAndMap(n int, vals map[Int]bool) (nDels int) {
+	for i := 0; i < n; i++ {
+		r := Int(rng.Intn(randMax))
+		if _, found := tree.Delete(r); found {
+			nDels++
+		}
+		delete(vals, r)
 	}
 	return
 }
@@ -353,7 +341,7 @@ func BenchmarkLookupRandom100000(b *testing.B) {
 
 func benchmarkLookupRandom(b *testing.B, size int) {
 	b.StopTimer()
-	tree, _ := newIntTree(size, size)
+	tree := newIntTree(size, size)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		for n := 0; n < size; n++ {
@@ -406,8 +394,6 @@ func BenchmarkInsertRandom100000(b *testing.B) {
 
 func benchmarkInsertRandom(b *testing.B, size int) {
 	b.StopTimer()
-	seed := time.Now().UTC().UnixNano()
-	rng := rand.New(rand.NewSource(seed))
 	vals := make([]Int, size)
 	for i := range vals {
 		vals[i] = Int(rng.Intn(size))
@@ -471,8 +457,6 @@ func BenchmarkRedBlackGetRandom100000(b *testing.B) {
 func benchmarkRedBlackGetRandom(b *testing.B, size int) {
 	b.StopTimer()
 	tree := rbt.NewWithIntComparator()
-	seed := time.Now().UTC().UnixNano()
-	rng := rand.New(rand.NewSource(seed))
 	for n := 0; n < size; n++ {
 		tree.Put(rng.Intn(size), struct{}{})
 	}
