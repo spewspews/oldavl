@@ -258,7 +258,7 @@ func (tree *Tree) checkBalance(t *testing.T) {
 func (n *Node) checkBalance(t *testing.T) bool {
 	left := depth(n.c[0])
 	right := depth(n.c[1])
-//	t.Logf("Balance is %d %d\n", left, right)
+	//	t.Logf("Balance is %d %d\n", left, right)
 	b := right - left
 	if int8(b) != n.b {
 		return false
@@ -359,6 +359,66 @@ func benchmarkLookupRandom(b *testing.B, size int) {
 		for n := 0; n < size; n++ {
 			tree.Lookup(Int(n))
 		}
+	}
+}
+
+func BenchmarkInsert100(b *testing.B) {
+	benchmarkInsert(b, 100)
+}
+
+func BenchmarkInsert1000(b *testing.B) {
+	benchmarkInsert(b, 1000)
+}
+
+func BenchmarkInsert10000(b *testing.B) {
+	benchmarkInsert(b, 10000)
+}
+
+func BenchmarkInsert100000(b *testing.B) {
+	benchmarkInsert(b, 100000)
+}
+
+func benchmarkInsert(b *testing.B, size int) {
+	tree := new(Tree)
+	for i := 0; i < b.N; i++ {
+		for n := 0; n < size; n++ {
+			tree.Insert(Int(n))
+		}
+		tree = new(Tree)
+	}
+}
+
+func BenchmarkInsertRandom100(b *testing.B) {
+	benchmarkInsertRandom(b, 100)
+}
+
+func BenchmarkInsertRandom1000(b *testing.B) {
+	benchmarkInsertRandom(b, 1000)
+}
+
+func BenchmarkInsertRandom10000(b *testing.B) {
+	benchmarkInsertRandom(b, 10000)
+}
+
+func BenchmarkInsertRandom100000(b *testing.B) {
+	benchmarkInsertRandom(b, 100000)
+}
+
+func benchmarkInsertRandom(b *testing.B, size int) {
+	b.StopTimer()
+	seed := time.Now().UTC().UnixNano()
+	rng := rand.New(rand.NewSource(seed))
+	vals := make([]Int, size)
+	for i := range vals {
+		vals[i] = Int(rng.Intn(size))
+	}
+	tree := new(Tree)
+	b.StartTimer()
+	for t := 0; t < b.N; t++ {
+		for _, n := range vals {
+			tree.Insert(n)
+		}
+		tree = new(Tree)
 	}
 }
 

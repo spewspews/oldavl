@@ -61,12 +61,13 @@ func (t *Tree) Lookup(val Ordered) (Ordered, bool) {
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
 func (t *Tree) Insert(val Ordered) (delval Ordered, found bool) {
-	var insert func(p, q *Node) (*Node, bool)
-	insert = func(p, q *Node) (*Node, bool) {
+	var insert func(*Node, **Node) bool
+	insert = func(p *Node, qp **Node) bool {
+		q := *qp
 		if q == nil {
 			t.size++
-			new := &Node{Val: val, p: p}
-			return new, true
+			*qp = &Node{Val: val, p: p}
+			return true
 		}
 
 		c := cmp(val, q.Val)
@@ -74,19 +75,19 @@ func (t *Tree) Insert(val Ordered) (delval Ordered, found bool) {
 			delval = q.Val
 			found = true
 			q.Val = val
-			return q, false
+			return false
 		}
 
 		a := (c + 1) / 2
 		var fix bool
-		q.c[a], fix = insert(q, q.c[a])
+		fix = insert(q, &q.c[a])
 		if fix {
-			return insertfix(c, q)
+			return insertFix(c, qp)
 		}
-		return q, false
+		return false
 	}
 
-	t.root, _ = insert(nil, t.root)
+	insert(nil, &t.root)
 	return
 }
 
@@ -118,7 +119,7 @@ func (t *Tree) Delete(val Ordered) (delval Ordered, found bool) {
 			q.c[1], fix = deletemin(q.c[1], &min)
 			q.Val = min
 			if fix {
-				return deletefix(-1, q)
+				return deleteFix(-1, q)
 			}
 			return q, false
 		}
@@ -126,7 +127,7 @@ func (t *Tree) Delete(val Ordered) (delval Ordered, found bool) {
 		var fix bool
 		q.c[a], fix = delete(q.c[a])
 		if fix {
-			return deletefix(-c, q)
+			return deleteFix(-c, q)
 		}
 		return q, false
 	}
@@ -146,7 +147,7 @@ func deletemin(q *Node, min *Ordered) (*Node, bool) {
 	var fix bool
 	q.c[0], fix = deletemin(q.c[0], min)
 	if fix {
-		return deletefix(1, q)
+		return deleteFix(1, q)
 	}
 	return q, false
 }
@@ -162,23 +163,28 @@ func cmp(a, b Ordered) int8 {
 	}
 }
 
-func insertfix(c int8, s *Node) (*Node, bool) {
+func insertFix(c int8, t **Node) bool {
+	s := *t
 	if s.b == 0 {
 		s.b = c
-		return s, true
+		return true
 	}
 
 	if s.b == -c {
 		s.b = 0
-	} else if s.c[(c+1)/2].b == c {
+		return false
+	}
+
+	if s.c[(c+1)/2].b == c {
 		s = singlerot(c, s)
 	} else {
 		s = doublerot(c, s)
 	}
-	return s, false
+	*t = s
+	return false
 }
 
-func deletefix(c int8, s *Node) (*Node, bool) {
+func deleteFix(c int8, s *Node) (*Node, bool) {
 	if s.b == 0 {
 		s.b = c
 		return s, false
