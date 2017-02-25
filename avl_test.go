@@ -68,7 +68,7 @@ func TestInsertReturn(t *testing.T) {
 			t.Errorf("Did not find duplicate on second loop: %d\n", i)
 		}
 		if j.(Int) != Int(i) {
-			t.Errorf("Got the wrong value %d %d\n", i, j)
+			t.Errorf("Got the wrong value %d %d\n", i, j.(Int))
 		}
 	}
 	for i := 1; i < 10; i += 2 {
