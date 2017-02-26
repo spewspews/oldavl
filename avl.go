@@ -39,7 +39,7 @@ func (t *Tree) Size() int {
 //
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
-func (t *Tree) Lookup(val Ordered) (Ordered, bool) {
+func (t *Tree) Lookup(val Ordered) (match Ordered, ok bool) {
 	n := t.root
 	for n != nil {
 		switch cmp(val, n.Val) {
@@ -51,7 +51,7 @@ func (t *Tree) Lookup(val Ordered) (Ordered, bool) {
 			n = n.c[1]
 		}
 	}
-	return nil, false
+	return
 }
 
 // Insert looks up val and inserts it into the tree.
