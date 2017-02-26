@@ -61,38 +61,35 @@ func (t *Tree) Lookup(val Ordered) (Ordered, bool) {
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
 func (t *Tree) Insert(val Ordered) (delval Ordered, found bool) {
-	var insert func(*Node, **Node) bool
-	insert = func(p *Node, qp **Node) bool {
+	p := (*Node)(nil)
+	qp := &t.root
+	c := int8(0)
+	for {
 		q := *qp
+		dbgLog.Printf("Insert: c: %d\t%p:%v\n", c, q, q)
 		if q == nil {
 			t.size++
 			*qp = &Node{Val: val, p: p}
-			return true
+			dbgLog.Printf("Inserting %p:%v\n", *qp, *qp)
+			t.insertFix(c, p)
+			return
 		}
 
-		c := cmp(val, q.Val)
+		c = cmp(val, q.Val)
 		if c == 0 {
 			delval = q.Val
 			found = true
 			q.Val = val
-			return false
+			return
 		}
-
 		a := (c + 1) / 2
-		var fix bool
-		fix = insert(q, &q.c[a])
-		if fix {
-			return insertFix(c, qp)
-		}
-		return false
+		p = q
+		qp = &q.c[a]
 	}
-
-	insert(nil, &t.root)
-	return
 }
 
 // Delete looks up val and dels the matching element
-// from the tree. The found element oldval is returned.
+// from the tree. The found element delval is returned.
 //
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
@@ -162,25 +159,51 @@ func cmp(a, b Ordered) int8 {
 	}
 }
 
-func insertFix(c int8, t **Node) bool {
-	s := *t
-	if s.b == 0 {
-		s.b = c
-		return true
+func (t *Tree) insertFix(c int8, n *Node) {
+	if n == nil {
+		return
+	}
+	for n.b == 0 {
+		dbgLog.Printf("insertFix: c: %d\t%p:%v\n", c, n, n)
+		n.b = c
+		if n.p == nil {
+			return
+		}
+		p := n.p
+		if p.c[0] == n {
+			c = -1
+		} else {
+			c = 1
+		}
+		n = p
 	}
 
-	if s.b == -c {
-		s.b = 0
-		return false
+	if n.b == -c {
+		n.b = 0
+		return
 	}
 
-	if s.c[(c+1)/2].b == c {
-		s = singlerot(c, s)
+	p := n.p
+	var a int
+	if p == nil {
+		a = -1
+	} else if p.c[0] == n {
+		a = 0
 	} else {
-		s = doublerot(c, s)
+		a = 1
 	}
-	*t = s
-	return false
+
+	if n.c[(c+1)/2].b == c {
+		n = singlerot(c, n)
+	} else {
+		n = doublerot(c, n)
+	}
+
+	if a == -1 {
+		t.root = n
+	} else {
+		p.c[a] = n
+	}
 }
 
 func delFix(c int8, t **Node) bool {

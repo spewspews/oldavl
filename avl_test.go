@@ -2,6 +2,7 @@ package avl
 
 import (
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -34,7 +35,7 @@ func (is *IntString) Less(j Ordered) bool {
 func TestMain(m *testing.M) {
 	seed := time.Now().UTC().UnixNano()
 	rng = rand.New(rand.NewSource(seed))
-	m.Run()
+	os.Exit(m.Run())
 }
 
 func TestInsertOrdered(t *testing.T) {
@@ -50,13 +51,14 @@ func TestInsertBalanced(t *testing.T) {
 func TestInsertSize(t *testing.T) {
 	tree, vals := newIntTreeAndMap(nNodes, randMax)
 	if len(vals) != tree.Size() {
-		t.Errorf("Size does not match: size %d, tree.Size() %d\n", len(vals), tree.Size())
+		t.Errorf("Size does not match: len(vals) %d, tree.Size() %d\n", len(vals), tree.Size())
 	}
 }
 
 func TestInsertReturn(t *testing.T) {
 	tree := new(Tree)
 	for i := 0; i < 10; i += 2 {
+		t.Logf("Inserting %d\n", i)
 		_, found := tree.Insert(Int(i))
 		if found {
 			t.Errorf("Should not have found duplicate on first loop: %d\n", i)
@@ -225,21 +227,18 @@ func (tree *Tree) checkOrdered(t *testing.T) {
 
 func (tree *Tree) checkBalance(t *testing.T) {
 	for n := tree.Min(); n != nil; n = n.Next() {
-		if !n.checkBalance(t) {
-			t.Errorf("Tree not balanced")
-		}
+		n.checkBalance(t)
 	}
 }
 
-func (n *Node) checkBalance(t *testing.T) bool {
+func (n *Node) checkBalance(t *testing.T) {
+	t.Logf("Node balance is %d\n", n.b)
 	left := depth(n.c[0])
 	right := depth(n.c[1])
-	//	t.Logf("Balance is %d %d\n", left, right)
 	b := right - left
 	if int8(b) != n.b {
-		return false
+		t.Errorf("Node not balanced: left %d right %d n.b %d\n", left, right, n.b)
 	}
-	return true
 }
 
 func newIntTree(n, randMax int) *Tree {
