@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	rbt "github.com/emirpasic/gods/trees/redblacktree"
+	"github.com/emirpasic/gods/trees/avltree"
 )
 
 const (
@@ -38,17 +38,17 @@ func TestMain(m *testing.M) {
 }
 
 func TestInsertOrdered(t *testing.T) {
-	tree := newIntTree(nNodes, randMax)
+	tree := newRandIntTree(nNodes, randMax)
 	tree.checkOrdered(t)
 }
 
 func TestInsertBalanced(t *testing.T) {
-	tree := newIntTree(nNodes, randMax)
+	tree := newRandIntTree(nNodes, randMax)
 	tree.checkBalance(t)
 }
 
 func TestInsertSize(t *testing.T) {
-	tree, vals := newIntTreeAndMap(nNodes, randMax)
+	tree, vals := newRandIntTreeAndMap(nNodes, randMax)
 	if len(vals) != tree.Size() {
 		t.Errorf("Size does not match: size %d, tree.Size() %d\n", len(vals), tree.Size())
 	}
@@ -80,7 +80,7 @@ func TestInsertReturn(t *testing.T) {
 }
 
 func TestWalk(t *testing.T) {
-	tree := newIntTree(nNodes, randMax)
+	tree := newRandIntTree(nNodes, randMax)
 	i := 0
 	for n := tree.Min(); n != nil; n = n.Next() {
 		i++
@@ -146,13 +146,13 @@ func TestInsertKeyValDuplicates(t *testing.T) {
 }
 
 func TestDeleteOrdered(t *testing.T) {
-	tree := newIntTree(nNodes, randMax)
+	tree := newRandIntTree(nNodes, randMax)
 	tree.deleteSome(nDels)
 	tree.checkOrdered(t)
 }
 
 func TestDeleteBalanced(t *testing.T) {
-	tree := newIntTree(nNodes, randMax)
+	tree := newRandIntTree(nNodes, randMax)
 	t.Logf("Tree has %d elements\n", tree.Size())
 	d := tree.deleteSome(nDels)
 	t.Logf("Deleted %d elements\n", d)
@@ -160,7 +160,7 @@ func TestDeleteBalanced(t *testing.T) {
 }
 
 func TestDeleteSize(t *testing.T) {
-	tree := newIntTree(nNodes, randMax)
+	tree := newRandIntTree(nNodes, randMax)
 	oldsize := tree.Size()
 	nDels := tree.deleteSome(nDels)
 	if tree.Size() != oldsize-nDels {
@@ -169,7 +169,7 @@ func TestDeleteSize(t *testing.T) {
 }
 
 func TestDeleteWalk(t *testing.T) {
-	tree := newIntTree(nNodes, randMax)
+	tree := newRandIntTree(nNodes, randMax)
 	t.Logf("Tree has %d elements\n", tree.Size())
 	d := tree.deleteSome(nDels)
 	t.Logf("Deleted %d elements\n", d)
@@ -190,12 +190,12 @@ func TestDeleteWalk(t *testing.T) {
 }
 
 func TestLookups(t *testing.T) {
-	tree, vals := newIntTreeAndMap(nNodes, randMax)
+	tree, vals := newRandIntTreeAndMap(nNodes, randMax)
 	tree.checkLookups(t, vals, randMax)
 }
 
 func TestLookupsAfterDeletions(t *testing.T) {
-	tree, vals := newIntTreeAndMap(nNodes, randMax)
+	tree, vals := newRandIntTreeAndMap(nNodes, randMax)
 	tree.deleteSomeAndMap(nDels, vals)
 	tree.checkLookups(t, vals, randMax)
 }
@@ -242,7 +242,7 @@ func (n *Node) checkBalance(t *testing.T) bool {
 	return true
 }
 
-func newIntTree(n, randMax int) *Tree {
+func newRandIntTree(n, randMax int) *Tree {
 	tree := new(Tree)
 	for i := 0; i < n; i++ {
 		tree.Insert(Int(rng.Intn(randMax)))
@@ -250,7 +250,7 @@ func newIntTree(n, randMax int) *Tree {
 	return tree
 }
 
-func newIntTreeAndMap(n, randMax int) (tree *Tree, vals map[Int]bool) {
+func newRandIntTreeAndMap(n, randMax int) (tree *Tree, vals map[Int]bool) {
 	tree = new(Tree)
 	vals = make(map[Int]bool)
 	for i := 0; i < nNodes; i++ {
@@ -311,18 +311,20 @@ func BenchmarkLookup100000(b *testing.B) {
 	benchmarkLookup(b, 100000)
 }
 
-func benchmarkLookup(b *testing.B, size int) {
-	b.StopTimer()
-	tree := new(Tree)
-	for n := 0; n < size; n++ {
-		tree.Insert(Int(n))
-	}
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		for n := 0; n < size; n++ {
-			tree.Lookup(Int(n))
-		}
-	}
+func BenchmarkGoDSGet100(b *testing.B) {
+	benchmarkGoDSGet(b, 100)
+}
+
+func BenchmarkGoDSGet1000(b *testing.B) {
+	benchmarkGoDSGet(b, 1000)
+}
+
+func BenchmarkGoDSGet10000(b *testing.B) {
+	benchmarkGoDSGet(b, 10000)
+}
+
+func BenchmarkGoDSGet100000(b *testing.B) {
+	benchmarkGoDSGet(b, 100000)
 }
 
 func BenchmarkLookupRandom100(b *testing.B) {
@@ -341,15 +343,20 @@ func BenchmarkLookupRandom100000(b *testing.B) {
 	benchmarkLookupRandom(b, 100000)
 }
 
-func benchmarkLookupRandom(b *testing.B, size int) {
-	b.StopTimer()
-	tree := newIntTree(size, size)
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		for n := 0; n < size; n++ {
-			tree.Lookup(Int(n))
-		}
-	}
+func BenchmarkGoDSGetRandom100(b *testing.B) {
+	benchmarkGoDSGetRandom(b, 100)
+}
+
+func BenchmarkGoDSGetRandom1000(b *testing.B) {
+	benchmarkGoDSGetRandom(b, 1000)
+}
+
+func BenchmarkGoDSGetRandom10000(b *testing.B) {
+	benchmarkGoDSGetRandom(b, 10000)
+}
+
+func BenchmarkGoDSGetRandom100000(b *testing.B) {
+	benchmarkGoDSGetRandom(b, 100000)
 }
 
 func BenchmarkInsert100(b *testing.B) {
@@ -368,14 +375,20 @@ func BenchmarkInsert100000(b *testing.B) {
 	benchmarkInsert(b, 100000)
 }
 
-func benchmarkInsert(b *testing.B, size int) {
-	tree := new(Tree)
-	for i := 0; i < b.N; i++ {
-		for n := 0; n < size; n++ {
-			tree.Insert(Int(n))
-		}
-		tree = new(Tree)
-	}
+func BenchmarkGoDSPut100(b *testing.B) {
+	benchmarkGoDSPut(b, 100)
+}
+
+func BenchmarkGoDSPut1000(b *testing.B) {
+	benchmarkGoDSPut(b, 1000)
+}
+
+func BenchmarkGoDSPut10000(b *testing.B) {
+	benchmarkGoDSPut(b, 10000)
+}
+
+func BenchmarkGoDSPut100000(b *testing.B) {
+	benchmarkGoDSPut(b, 100000)
 }
 
 func BenchmarkInsertRandom100(b *testing.B) {
@@ -394,43 +407,89 @@ func BenchmarkInsertRandom100000(b *testing.B) {
 	benchmarkInsertRandom(b, 100000)
 }
 
+func BenchmarkGoDSPutRandom100(b *testing.B) {
+	benchmarkGoDSPutRandom(b, 100)
+}
+
+func BenchmarkGoDSPutRandom1000(b *testing.B) {
+	benchmarkGoDSPutRandom(b, 1000)
+}
+
+func BenchmarkGoDSPutRandom10000(b *testing.B) {
+	benchmarkGoDSPutRandom(b, 10000)
+}
+
+func BenchmarkGoDSPutRandom100000(b *testing.B) {
+	benchmarkGoDSPutRandom(b, 100000)
+}
+
 func benchmarkInsertRandom(b *testing.B, size int) {
 	b.StopTimer()
-	vals := make([]Int, size)
+	vals := make([]Int, size);
 	for i := range vals {
 		vals[i] = Int(rng.Intn(size))
 	}
-	tree := new(Tree)
 	b.StartTimer()
 	for t := 0; t < b.N; t++ {
+		tree := new(Tree)
 		for _, n := range vals {
 			tree.Insert(n)
 		}
-		tree = new(Tree)
 	}
 }
 
-func BenchmarkRedBlackGet100(b *testing.B) {
-	benchmarkRedBlackGet(b, 100)
-}
-
-func BenchmarkRedBlackGet1000(b *testing.B) {
-	benchmarkRedBlackGet(b, 1000)
-}
-
-func BenchmarkRedBlackGet10000(b *testing.B) {
-	benchmarkRedBlackGet(b, 10000)
-}
-
-func BenchmarkRedBlackGet100000(b *testing.B) {
-	benchmarkRedBlackGet(b, 100000)
-}
-
-func benchmarkRedBlackGet(b *testing.B, size int) {
+func benchmarkLookup(b *testing.B, size int) {
 	b.StopTimer()
-	tree := rbt.NewWithIntComparator()
+	tree := new(Tree)
 	for n := 0; n < size; n++ {
-		tree.Put(n, struct{}{})
+		tree.Insert(Int(n))
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		for n := 0; n < size; n++ {
+			tree.Lookup(Int(n))
+		}
+	}
+}
+
+func benchmarkInsert(b *testing.B, size int) {
+	for i := 0; i < b.N; i++ {
+		tree := new(Tree)
+		for n := 0; n < size; n++ {
+			tree.Insert(Int(n))
+		}
+	}
+}
+
+func benchmarkGoDSPut(b *testing.B, size int) {
+	for i := 0; i < b.N; i++ {
+		tree := avltree.NewWithIntComparator()
+		for n := 0; n < size; n++ {
+			tree.Put(n, nil)
+		}
+	}
+}
+
+func benchmarkGoDSPutRandom(b *testing.B, size int) {
+	b.StopTimer()
+	vals := make([]int, size);
+	for i := range vals {
+		vals[i] = rng.Intn(size)
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		tree := avltree.NewWithIntComparator()
+		for _, n := range vals {
+			tree.Put(n, nil)
+		}
+	}
+}
+
+func benchmarkGoDSGet(b *testing.B, size int) {
+	b.StopTimer()
+	tree := avltree.NewWithIntComparator()
+	for n := 0; n < size; n++ {
+		tree.Put(n, nil)
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -440,27 +499,22 @@ func benchmarkRedBlackGet(b *testing.B, size int) {
 	}
 }
 
-func BenchmarkRedBlackGetRandom100(b *testing.B) {
-	benchmarkRedBlackGetRandom(b, 100)
-}
-
-func BenchmarkRedBlackGetRandom1000(b *testing.B) {
-	benchmarkRedBlackGetRandom(b, 1000)
-}
-
-func BenchmarkRedBlackGetRandom10000(b *testing.B) {
-	benchmarkRedBlackGetRandom(b, 10000)
-}
-
-func BenchmarkRedBlackGetRandom100000(b *testing.B) {
-	benchmarkRedBlackGetRandom(b, 100000)
-}
-
-func benchmarkRedBlackGetRandom(b *testing.B, size int) {
+func benchmarkLookupRandom(b *testing.B, size int) {
 	b.StopTimer()
-	tree := rbt.NewWithIntComparator()
+	tree := newRandIntTree(size, size)
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		for n := 0; n < size; n++ {
+			tree.Lookup(Int(n))
+		}
+	}
+}
+
+func benchmarkGoDSGetRandom(b *testing.B, size int) {
+	b.StopTimer()
+	tree := avltree.NewWithIntComparator()
 	for n := 0; n < size; n++ {
-		tree.Put(rng.Intn(size), struct{}{})
+		tree.Put(rng.Intn(size), nil)
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
