@@ -54,31 +54,6 @@ func TestInsertSize(t *testing.T) {
 	}
 }
 
-func TestInsertReturn(t *testing.T) {
-	tree := new(Tree)
-	for i := 0; i < 10; i += 2 {
-		_, found := tree.Insert(Int(i))
-		if found {
-			t.Errorf("Should not have found duplicate on first loop: %d\n", i)
-		}
-	}
-	for i := 0; i < 10; i += 2 {
-		j, found := tree.Insert(Int(i))
-		if !found {
-			t.Errorf("Did not find duplicate on second loop: %d\n", i)
-		}
-		if j.(Int) != Int(i) {
-			t.Errorf("Got the wrong value %d %d\n", i, j.(Int))
-		}
-	}
-	for i := 1; i < 10; i += 2 {
-		_, found := tree.Insert(Int(i))
-		if found {
-			t.Errorf("Should not have found duplicate on second loop: %d\n", i)
-		}
-	}
-}
-
 func TestWalk(t *testing.T) {
 	tree := newRandIntTree(nNodes, randMax)
 	i := 0
@@ -94,54 +69,6 @@ func TestWalk(t *testing.T) {
 	}
 	if i != tree.Size() {
 		t.Errorf("Walk down not the same size as tree: %d %d\n", i, tree.Size())
-	}
-}
-
-func TestInsertDuplicates(t *testing.T) {
-	tree := new(Tree)
-
-	old, found := tree.Insert(Int(5))
-	if found {
-		t.Errorf("got bad duplicate %d\n", old.(Int))
-	}
-
-	old, found = tree.Insert(Int(6))
-	if found {
-		t.Errorf("got bad duplicate %d\n", old.(Int))
-	}
-
-	old, found = tree.Insert(Int(5))
-	if !found {
-		t.Error("Should have gotten duplicate")
-	}
-	v := old.(Int)
-	if v != 5 {
-		t.Error("Got the wrong value")
-	}
-}
-
-func TestInsertKeyValDuplicates(t *testing.T) {
-	tree := new(Tree)
-
-	old, found := tree.Insert(&IntString{3, "three"})
-	if found {
-		v := old.(*IntString)
-		t.Errorf("got bad duplicate %d\n", v.key)
-	}
-
-	old, found = tree.Insert(&IntString{4, "four"})
-	if found {
-		v := old.(*IntString)
-		t.Errorf("got bad duplicate %d\n", v.key)
-	}
-
-	old, found = tree.Insert(&IntString{3, "three"})
-	if !found {
-		t.Error("Should have gotten duplicate")
-	}
-	v := old.(*IntString)
-	if v.key != 3 || v.val != "three" {
-		t.Errorf("Got the wrong values: %d %s", v.key, v.val)
 	}
 }
 

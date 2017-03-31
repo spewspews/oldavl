@@ -60,9 +60,11 @@ func (t *Tree) Lookup(val Ordered) (match Ordered, ok bool) {
 //
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
-func (t *Tree) Insert(val Ordered) (delval Ordered, found bool) {
-	var insert func(*Node, **Node) bool
-	insert = func(p *Node, qp **Node) bool {
+func (t *Tree) Insert(val Ordered) {
+	t.insert(val, nil, &t.root)
+}
+
+func (t *Tree) insert(val Ordered, p *Node, qp **Node) bool {
 		q := *qp
 		if q == nil {
 			t.size++
@@ -72,23 +74,17 @@ func (t *Tree) Insert(val Ordered) (delval Ordered, found bool) {
 
 		c := cmp(val, q.Val)
 		if c == 0 {
-			delval = q.Val
-			found = true
 			q.Val = val
 			return false
 		}
 
 		a := (c + 1) / 2
-		var fix bool
-		fix = insert(q, &q.c[a])
+		fix := t.insert(val, q, &q.c[a])
 		if fix {
 			return insertFix(c, qp)
 		}
 		return false
-	}
-
-	insert(nil, &t.root)
-	return
+	
 }
 
 // Delete looks up val and dels the matching element
