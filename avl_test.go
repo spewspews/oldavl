@@ -81,25 +81,14 @@ func TestDeleteOrdered(t *testing.T) {
 func TestDeleteBalanced(t *testing.T) {
 	tree := newRandIntTree(nNodes, randMax)
 	t.Logf("Tree has %d elements\n", tree.Size())
-	d := tree.deleteSome(nDels)
-	t.Logf("Deleted %d elements\n", d)
+	tree.deleteSome(nDels)
 	tree.checkBalance(t)
-}
-
-func TestDeleteSize(t *testing.T) {
-	tree := newRandIntTree(nNodes, randMax)
-	oldsize := tree.Size()
-	nDels := tree.deleteSome(nDels)
-	if tree.Size() != oldsize-nDels {
-		t.Errorf("Size does not match: oldsize-nDels %d, tree.Size() %d", oldsize-nDels, tree.Size())
-	}
 }
 
 func TestDeleteWalk(t *testing.T) {
 	tree := newRandIntTree(nNodes, randMax)
 	t.Logf("Tree has %d elements\n", tree.Size())
-	d := tree.deleteSome(nDels)
-	t.Logf("Deleted %d elements\n", d)
+	tree.deleteSome(nDels)
 	i := 0
 	for n := tree.Min(); n != nil; n = n.Next() {
 		i++
@@ -190,10 +179,7 @@ func newRandIntTreeAndMap(n, randMax int) (tree *Tree, vals map[Int]bool) {
 
 func (tree *Tree) deleteSome(n int) (nDels int) {
 	for i := 0; i < n; i++ {
-		r := Int(rng.Intn(randMax))
-		if _, found := tree.Delete(r); found {
-			nDels++
-		}
+		tree.Delete(Int(rng.Intn(randMax)))
 	}
 	return
 }
@@ -201,9 +187,7 @@ func (tree *Tree) deleteSome(n int) (nDels int) {
 func (tree *Tree) deleteSomeAndMap(n int, vals map[Int]bool) (nDels int) {
 	for i := 0; i < n; i++ {
 		r := Int(rng.Intn(randMax))
-		if _, found := tree.Delete(r); found {
-			nDels++
-		}
+		tree.Delete(r)
 		delete(vals, r)
 	}
 	return
