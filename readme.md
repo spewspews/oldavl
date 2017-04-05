@@ -1,7 +1,7 @@
 AVL
 =
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/spewspews/avl)](https://goreportcard.com/report/github.com/spewspews/avl)
+[![Go Report Card](https://goreportcard.com/badge/github.com/spewspews/oldavl)](https://goreportcard.com/report/github.com/spewspews/oldavl)
 
 AVL balanced tree in Golang
 
