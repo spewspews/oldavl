@@ -1,4 +1,4 @@
-package avl
+package oldavl
 
 import (
 	"math/rand"

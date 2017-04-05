@@ -1,5 +1,5 @@
 // Package avl implements an AVL balanced binary tree.
-package avl
+package oldavl
 
 import (
 	"io/ioutil"
