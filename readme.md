@@ -5,6 +5,6 @@ AVL
 
 AVL balanced tree in Golang
 
-This is deprecated since this code has been imported in to https://github.com/emirpasic/gods/
+This is deprecated since this code has been imported in to [GoDS](https://github.com/emirpasic/gods)
 
 get it at `go get github.com/emirpasic/gods/trees/avltree`
