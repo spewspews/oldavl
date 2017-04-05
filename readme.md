@@ -9,4 +9,4 @@ This is deprecated since this code has been imported in to [GoDS](https://github
 
 get it at `go get github.com/emirpasic/gods/trees/avltree`
 
-I have also adapted this for an experiment in type-safe generic data structures [here](avl)
+I have also adapted this for an experiment in type-safe generic data structures [here](https://github.com/spewspews/avl)
