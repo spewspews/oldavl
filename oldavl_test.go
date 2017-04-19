@@ -16,10 +16,17 @@ const (
 
 var rng *rand.Rand
 
-type Int int
+func intCmp(a, b interface{}) int {
+	i, j := a.(int), b.(int)
 
-func (i Int) Less(j Ordered) bool {
-	return i < j.(Int)
+	switch {
+	case i < j:
+		return -1
+	default:
+		return 0
+	case i > j:
+		return 1
+	}
 }
 
 type IntString struct {
@@ -27,8 +34,17 @@ type IntString struct {
 	val string
 }
 
-func (is *IntString) Less(j Ordered) bool {
-	return is.key < j.(*IntString).key
+func intStringCmp(a, b interface{}) int {
+	i, j := a.(*IntString), b.(*IntString)
+
+	switch {
+	case i.key < j.key:
+		return -1
+	default:
+		return 0
+	case i.key > j.key:
+		return 1
+	}
 }
 
 func TestMain(m *testing.M) {
@@ -116,10 +132,10 @@ func TestLookupsAfterDeletions(t *testing.T) {
 	tree.checkLookups(t, vals, randMax)
 }
 
-func (tree *Tree) checkLookups(t *testing.T, vals map[Int]bool, max int) {
+func (tree *Tree) checkLookups(t *testing.T, vals map[int]bool, max int) {
 	for i := 0; i < max; i++ {
-		inMap := vals[Int(i)]
-		_, inTree := tree.Lookup(Int(i))
+		inMap := vals[i]
+		_, inTree := tree.Lookup(i)
 		if inMap && !inTree {
 			t.Errorf("Mismatch: value found in map but not in tree")
 		}
@@ -132,8 +148,8 @@ func (tree *Tree) checkLookups(t *testing.T, vals map[Int]bool, max int) {
 func (tree *Tree) checkOrdered(t *testing.T) {
 	n := tree.Min()
 	for next := n.Next(); next != nil; next = n.Next() {
-		if next.Val.(Int) <= n.Val.(Int) {
-			t.Errorf("Tree not ordered: %d ≮ %d", n.Val.(Int), next.Val.(Int))
+		if next.Val.(int) <= n.Val.(int) {
+			t.Errorf("Tree not ordered: %d ≮ %d", n.Val.(int), next.Val.(int))
 		}
 		n = next
 	}
@@ -159,18 +175,18 @@ func (n *Node) checkBalance(t *testing.T) bool {
 }
 
 func newRandIntTree(n, randMax int) *Tree {
-	tree := new(Tree)
+	tree := NewTree(intCmp)
 	for i := 0; i < n; i++ {
-		tree.Insert(Int(rng.Intn(randMax)))
+		tree.Insert(rng.Intn(randMax))
 	}
 	return tree
 }
 
-func newRandIntTreeAndMap(n, randMax int) (tree *Tree, vals map[Int]bool) {
-	tree = new(Tree)
-	vals = make(map[Int]bool)
+func newRandIntTreeAndMap(n, randMax int) (tree *Tree, vals map[int]bool) {
+	tree = NewTree(intCmp)
+	vals = make(map[int]bool)
 	for i := 0; i < nNodes; i++ {
-		r := Int(rng.Intn(randMax))
+		r := rng.Intn(randMax)
 		tree.Insert(r)
 		vals[r] = true
 	}
@@ -179,14 +195,14 @@ func newRandIntTreeAndMap(n, randMax int) (tree *Tree, vals map[Int]bool) {
 
 func (tree *Tree) deleteSome(n int) (nDels int) {
 	for i := 0; i < n; i++ {
-		tree.Delete(Int(rng.Intn(randMax)))
+		tree.Delete(rng.Intn(randMax))
 	}
 	return
 }
 
-func (tree *Tree) deleteSomeAndMap(n int, vals map[Int]bool) (nDels int) {
+func (tree *Tree) deleteSomeAndMap(n int, vals map[int]bool) (nDels int) {
 	for i := 0; i < n; i++ {
-		r := Int(rng.Intn(randMax))
+		r := rng.Intn(randMax)
 		tree.Delete(r)
 		delete(vals, r)
 	}
@@ -336,13 +352,13 @@ func BenchmarkGoDSPutRandom100000(b *testing.B) {
 
 func benchmarkInsertRandom(b *testing.B, size int) {
 	b.StopTimer()
-	vals := make([]Int, size);
+	vals := make([]int, size);
 	for i := range vals {
-		vals[i] = Int(rng.Intn(size))
+		vals[i] = rng.Intn(size)
 	}
 	b.StartTimer()
 	for t := 0; t < b.N; t++ {
-		tree := new(Tree)
+		tree := NewTree(intCmp)
 		for _, n := range vals {
 			tree.Insert(n)
 		}
@@ -351,23 +367,23 @@ func benchmarkInsertRandom(b *testing.B, size int) {
 
 func benchmarkLookup(b *testing.B, size int) {
 	b.StopTimer()
-	tree := new(Tree)
+	tree := NewTree(intCmp)
 	for n := 0; n < size; n++ {
-		tree.Insert(Int(n))
+		tree.Insert(n)
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		for n := 0; n < size; n++ {
-			tree.Lookup(Int(n))
+			tree.Lookup(n)
 		}
 	}
 }
 
 func benchmarkInsert(b *testing.B, size int) {
 	for i := 0; i < b.N; i++ {
-		tree := new(Tree)
+		tree := NewTree(intCmp)
 		for n := 0; n < size; n++ {
-			tree.Insert(Int(n))
+			tree.Insert(n)
 		}
 	}
 }
@@ -416,7 +432,7 @@ func benchmarkLookupRandom(b *testing.B, size int) {
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		for n := 0; n < size; n++ {
-			tree.Lookup(Int(n))
+			tree.Lookup(n)
 		}
 	}
 }

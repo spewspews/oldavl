@@ -1,32 +1,24 @@
 // Package avl implements an AVL balanced binary tree.
 package oldavl
 
-import (
-	"io/ioutil"
-	"log"
-)
-
-var dbgLog = log.New(ioutil.Discard, "avl: ", log.LstdFlags)
-
 // Tree holds elements of the AVL tree.
 type Tree struct {
 	root *Node
 	size int
-}
-
-// Ordered defines the comparison used to store
-// elements in the AVL tree.
-type Ordered interface {
-	Less(Ordered) bool
+	cmp  func(interface{}, interface{}) int
 }
 
 // A Node holds an Ordered element of the AVL tree in
 // the Val field.
 type Node struct {
-	Val Ordered
+	Val interface{}
 	c   [2]*Node
 	p   *Node
 	b   int8
+}
+
+func NewTree(cmp func(interface{}, interface{}) int) *Tree {
+	return &Tree{cmp: cmp}
 }
 
 // Size returns the number of elements stored in the tree.
@@ -39,18 +31,19 @@ func (t *Tree) Size() int {
 //
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
-func (t *Tree) Lookup(val Ordered) (match Ordered, ok bool) {
+func (t *Tree) Lookup(val interface{}) (match interface{}, ok bool) {
 	if t == nil {
 		return
 	}
 	n := t.root
 	for n != nil {
-		switch cmp(val, n.Val) {
-		case -1:
+		cmp := t.cmp(val, n.Val)
+		switch {
+		case cmp < 0:
 			n = n.c[0]
-		case 0:
+		default:
 			return n.Val, true
-		case 1:
+		case cmp > 0:
 			n = n.c[1]
 		}
 	}
@@ -63,11 +56,11 @@ func (t *Tree) Lookup(val Ordered) (match Ordered, ok bool) {
 //
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
-func (t *Tree) Insert(val Ordered) {
+func (t *Tree) Insert(val interface{}) {
 	t.insert(val, nil, &t.root)
 }
 
-func (t *Tree) insert(val Ordered, p *Node, qp **Node) bool {
+func (t *Tree) insert(val interface{}, p *Node, qp **Node) bool {
 	q := *qp
 	if q == nil {
 		t.size++
@@ -75,16 +68,22 @@ func (t *Tree) insert(val Ordered, p *Node, qp **Node) bool {
 		return true
 	}
 
-	c := cmp(val, q.Val)
+	c := t.cmp(val, q.Val)
 	if c == 0 {
 		q.Val = val
 		return false
 	}
 
+	switch {
+	case c < 0:
+		c = -1
+	case c > 0:
+		c = 1
+	}
 	a := (c + 1) / 2
 	fix := t.insert(val, q, &q.c[a])
 	if fix {
-		return insertFix(c, qp)
+		return insertFix(int8(c), qp)
 	}
 	return false
 
@@ -95,20 +94,20 @@ func (t *Tree) insert(val Ordered, p *Node, qp **Node) bool {
 //
 // Val's Less implementation must be able to handle
 // comparisons to elements stored in this tree.
-func (t *Tree) Delete(val Ordered) {
+func (t *Tree) Delete(val interface{}) {
 	if t == nil {
 		return
 	}
 	t.del(val, &t.root)
 }
 
-func (t *Tree) del(val Ordered, qp **Node) bool {
+func (t *Tree) del(val interface{}, qp **Node) bool {
 	q := *qp
 	if q == nil {
 		return false
 	}
 
-	c := cmp(val, q.Val)
+	c := t.cmp(val, q.Val)
 	if c == 0 {
 		t.size--
 		if q.c[1] == nil {
@@ -124,15 +123,21 @@ func (t *Tree) del(val Ordered, qp **Node) bool {
 		}
 		return false
 	}
+	switch {
+	case c < 0:
+		c = -1
+	case c > 0:
+		c = 1
+	}
 	a := (c + 1) / 2
 	fix := t.del(val, &q.c[a])
 	if fix {
-		return delFix(-c, qp)
+		return delFix(int8(-c), qp)
 	}
 	return false
 }
 
-func delmin(qp **Node, min *Ordered) bool {
+func delmin(qp **Node, min *interface{}) bool {
 	q := *qp
 	if q.c[0] == nil {
 		*min = q.Val
@@ -147,17 +152,6 @@ func delmin(qp **Node, min *Ordered) bool {
 		return delFix(1, qp)
 	}
 	return false
-}
-
-func cmp(a, b Ordered) int8 {
-	switch {
-	case a.Less(b):
-		return -1
-	default:
-		return 0
-	case b.Less(a):
-		return 1
-	}
 }
 
 func insertFix(c int8, t **Node) bool {
@@ -211,16 +205,13 @@ func delFix(c int8, t **Node) bool {
 }
 
 func singlerot(c int8, s *Node) *Node {
-	dbgLog.Printf("singlerot: enter %p:%v %d\n", s, s, c)
 	s.b = 0
 	s = rotate(c, s)
 	s.b = 0
-	dbgLog.Printf("singlerot: exit %p:%v\n", s, s)
 	return s
 }
 
 func doublerot(c int8, s *Node) *Node {
-	dbgLog.Printf("doublerot: enter %p:%v %d\n", s, s, c)
 	a := (c + 1) / 2
 	r := s.c[a]
 	s.c[a] = rotate(-c, s.c[a])
@@ -242,12 +233,10 @@ func doublerot(c int8, s *Node) *Node {
 	}
 
 	p.b = 0
-	dbgLog.Printf("doublerot: exit %p:%v\n", s, s)
 	return p
 }
 
 func rotate(c int8, s *Node) *Node {
-	dbgLog.Printf("rotate: enter %p:%v %d\n", s, s, c)
 	a := (c + 1) / 2
 	r := s.c[a]
 	s.c[a] = r.c[a^1]
@@ -257,7 +246,6 @@ func rotate(c int8, s *Node) *Node {
 	r.c[a^1] = s
 	r.p = s.p
 	s.p = r
-	dbgLog.Printf("rotate: exit %p:%v\n", r, r)
 	return r
 }
 
