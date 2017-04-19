@@ -352,7 +352,7 @@ func BenchmarkGoDSPutRandom100000(b *testing.B) {
 
 func benchmarkInsertRandom(b *testing.B, size int) {
 	b.StopTimer()
-	vals := make([]int, size);
+	vals := make([]int, size)
 	for i := range vals {
 		vals[i] = rng.Intn(size)
 	}
@@ -399,7 +399,7 @@ func benchmarkGoDSPut(b *testing.B, size int) {
 
 func benchmarkGoDSPutRandom(b *testing.B, size int) {
 	b.StopTimer()
-	vals := make([]int, size);
+	vals := make([]int, size)
 	for i := range vals {
 		vals[i] = rng.Intn(size)
 	}
